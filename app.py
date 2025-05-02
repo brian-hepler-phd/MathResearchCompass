@@ -97,8 +97,21 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
+def on_page_change():
+    """Handle page navigation"""
+    page = st.session_state.navigation
+    st.session_state.current_page = page
 
-# Helper functions - replacing imports from the compass module
+def apply_filters():
+    """Apply selected filters to the data"""
+    if "filters_applied" not in st.session_state:
+        st.session_state.filters_applied = False
+    
+    st.session_state.filters_applied = True
+    # This will force a rerun with the new filters
+    st.rerun()  # Changed from experimental_rerun which is deprecated
+
+# Helper functions
 def load_subject_data(subject):
     """
     Load cleaned data for a specific subject.
@@ -260,6 +273,135 @@ def load_topic_data(metadata: Dict) -> Dict:
     return data
 
 
+def create_sample_data():
+    """Create sample data if no real data is available yet"""
+    st.info("No topic analysis data found. Creating sample data for demonstration.")
+    
+    # Create sample directory structure
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    
+    # Sample metadata
+    metadata = {
+        "timestamp": timestamp,
+        "num_documents": 26741,
+        "num_topics": 290,
+        "subjects": ["math.AG", "math.AT", "math.RT", "math.SG"],
+        "year_range": [2019, 2023],
+        "file_references": {
+            "topic_info": f"topic_info_{timestamp}.csv",
+            "topic_keywords": f"topic_keywords_{timestamp}.json",
+            "document_topics": f"document_topics_{timestamp}.csv",
+            "topic_trends": f"topic_trends_{timestamp}.json",
+        }
+    }
+    
+    # Save sample metadata
+    with open(TOPIC_DIR / f"metadata_{timestamp}.json", "w") as f:
+        json.dump(metadata, f)
+    
+    # Create sample topic info
+    topic_info = pd.DataFrame({
+        "Topic": range(1, 11),
+        "Count": [500, 450, 400, 350, 300, 250, 200, 150, 100, 50],
+        "Name": [f"Topic_{i}_sample_topic" for i in range(1, 11)]
+    })
+    topic_info.to_csv(TOPIC_DIR / f"topic_info_{timestamp}.csv", index=False)
+    
+    # Create sample keywords
+    keywords = {}
+    for i in range(1, 11):
+        keywords[str(i)] = [
+            ["algebra", 0.9],
+            ["geometry", 0.8],
+            ["topology", 0.7],
+            ["manifold", 0.6],
+            ["group", 0.5]
+        ]
+    
+    with open(TOPIC_DIR / f"topic_keywords_{timestamp}.json", "w") as f:
+        json.dump(keywords, f)
+    
+    # Create sample document topics
+    doc_topics = pd.DataFrame({
+        "id": [f"sample_{i}" for i in range(1, 101)],
+        "title": [f"Sample Paper {i}" for i in range(1, 101)],
+        "topic": np.random.randint(1, 11, 100),
+        "published_date": pd.date_range(start="2019-01-01", end="2023-12-31", periods=100).strftime("%Y-%m-%d").tolist(),
+        "primary_category": np.random.choice(["math.AG", "math.AT", "math.RT", "math.SG"], 100)
+    })
+    doc_topics.to_csv(TOPIC_DIR / f"document_topics_{timestamp}.csv", index=False)
+    
+    # Create sample topic trends
+    topic_trends = {
+        "topics_over_time": [],
+        "trends": {},
+        "emerging_topics": [],
+        "declining_topics": []
+    }
+    
+    # Generate sample data for each topic over time
+    periods = ["2019-Q1", "2019-Q2", "2019-Q3", "2019-Q4", 
+               "2020-Q1", "2020-Q2", "2020-Q3", "2020-Q4",
+               "2021-Q1", "2021-Q2", "2021-Q3", "2021-Q4", 
+               "2022-Q1", "2022-Q2", "2022-Q3", "2022-Q4",
+               "2023-Q1", "2023-Q2", "2023-Q3", "2023-Q4"]
+    
+    for topic_id in range(1, 11):
+        # Generate a trend line with some randomness
+        if topic_id <= 5:  # Emerging topics
+            base = np.linspace(0.05, 0.15, len(periods))  # Increasing trend
+            growth = 80 + np.random.randint(-20, 20)
+        else:  # Declining topics
+            base = np.linspace(0.15, 0.05, len(periods))  # Decreasing trend
+            growth = -50 + np.random.randint(-20, 20)
+        
+        noise = np.random.normal(0, 0.01, len(periods))
+        frequencies = base + noise
+        frequencies = np.maximum(frequencies, 0.01)  # Ensure no negative values
+        
+        # Add to topics_over_time
+        for period, freq in zip(periods, frequencies):
+            topic_trends["topics_over_time"].append({
+                "Topic": topic_id,
+                "Timestamp": period,
+                "Frequency": float(freq)
+            })
+        
+        # Add to trends
+        topic_trends["trends"][str(topic_id)] = {
+            "name": f"Topic_{topic_id}_sample_topic",
+            "frequency": frequencies.tolist(),
+            "timestamps": periods,
+            "growth_absolute": float(frequencies[-1] - frequencies[0]),
+            "growth_relative": float(growth),
+            "trend_slope": float((frequencies[-1] - frequencies[0]) / len(periods)),
+            "normalized_slope": float((frequencies[-1] - frequencies[0]) / np.mean(frequencies))
+        }
+        
+        # Add to emerging or declining topics
+        if topic_id <= 5:
+            topic_trends["emerging_topics"].append({
+                "id": topic_id,
+                "name": f"Topic_{topic_id}_sample_topic",
+                "frequency": frequencies.tolist(),
+                "timestamps": periods,
+                "growth_relative": float(growth)
+            })
+        else:
+            topic_trends["declining_topics"].append({
+                "id": topic_id,
+                "name": f"Topic_{topic_id}_sample_topic",
+                "frequency": frequencies.tolist(),
+                "timestamps": periods,
+                "growth_relative": float(growth)
+            })
+    
+    with open(TOPIC_DIR / f"topic_trends_{timestamp}.json", "w") as f:
+        json.dump(topic_trends, f)
+    
+    return metadata
+
+
 def display_header():
     """Display dashboard header and description."""
     st.markdown('<p class="main-header">Math Research Compass 🧭</p>', unsafe_allow_html=True)
@@ -324,7 +466,8 @@ def display_sidebar(metadata_list: List[Dict]) -> Dict:
             selected_option = st.sidebar.selectbox(
                 "Select Dataset:",
                 options,
-                format_func=lambda x: x[1]
+                format_func=lambda x: x[1],
+                key="dataset_selector"
             )
             selected_metadata = selected_option[0]
         else:
@@ -338,10 +481,17 @@ def display_sidebar(metadata_list: List[Dict]) -> Dict:
     
     # Navigation
     st.sidebar.markdown("## Sections")
+
+    if "current_page" not in st.session_state:
+        st.session_state.current_page = "Overview"
+
     page = st.sidebar.radio(
         "Go to:",
-        ["Overview", "Topic Explorer", "Temporal Trends", "Emerging Topics", "Papers by Topic", "Collaboration Network"]
+        ["Overview", "Topic Explorer", "Temporal Trends", "Emerging Topics", "Papers by Topic", "Collaboration Network"],
+        key="navigation",
+        index=["Overview", "Topic Explorer", "Temporal Trends", "Emerging Topics", "Papers by Topic", "Collaboration Network"].index(st.session_state.current_page)
     )
+    st.session_state.current_page = page
     
     # Additional filters based on selected page
     st.sidebar.markdown("## Filters")
@@ -364,7 +514,8 @@ def display_sidebar(metadata_list: List[Dict]) -> Dict:
             min_value=5, 
             max_value=50, 
             value=st.session_state.filters["min_topic_size"],
-            step=5
+            step=5,
+            key="min_topic_size_filter"
         )
         
         # Number of topics to display
@@ -373,10 +524,10 @@ def display_sidebar(metadata_list: List[Dict]) -> Dict:
             min_value=5, 
             max_value=20, 
             value=st.session_state.filters["max_topics"],
-            step=5
+            step=5,
+            key="max_topics_filter"
         )
         
-
         # Subject filter (if multiple subjects are in the data)
         if len(selected_metadata["subjects"]) > 1:
             # Define the target categories of interest
@@ -389,10 +540,15 @@ def display_sidebar(metadata_list: List[Dict]) -> Dict:
             selected_subjects = st.sidebar.multiselect(
                 "Filter by Subject:",
                 options=available_categories,
-                default=st.session_state.filters["selected_subjects"] or available_categories
+                default=st.session_state.filters["selected_subjects"] or available_categories,
+                key="subject_filter"
             )
             st.session_state.filters["selected_subjects"] = selected_subjects
     
+    # Add button for applying filters
+    if st.sidebar.button("Apply Filters", key="apply_filters_button"):
+        apply_filters()
+
     # Link to GitHub
     st.sidebar.markdown("---")
     st.sidebar.markdown(
@@ -496,7 +652,7 @@ def display_topic_explorer(data: Dict):
         
         # Create a selectbox with topic names
         topic_options = [f"Topic {t}: {n}" for t, n in zip(topics, topic_names)]
-        selected_topic_idx = st.selectbox("Select a topic to explore:", range(len(topic_options)), format_func=lambda i: topic_options[i])
+        selected_topic_idx = st.selectbox("Select a topic to explore:", range(len(topic_options)), format_func=lambda i: topic_options[i], key="topic_explorer_selector")
         
         selected_topic_id = int(topics[selected_topic_idx])
         
@@ -569,8 +725,8 @@ def display_topic_explorer(data: Dict):
             )
             
             if not topic_papers.empty:
-                for _, paper in topic_papers.head(5).iterrows():
-                    with st.expander(paper["title"]):
+                for i, (_, paper) in enumerate(topic_papers.head(5).iterrows()):
+                    with st.expander(paper["title"], key=f"paper_expander_{i}"):
                         st.markdown(f"**ID**: {paper['id']}")
                         st.markdown(f"**Publication Date**: {paper['published_date']}")
                         st.markdown(f"**Category**: {paper['primary_category']}")
@@ -615,7 +771,8 @@ def display_temporal_trends(data: Dict):
             "Select topics to display:",
             range(len(topic_options)),
             default=default_topics,
-            format_func=lambda i: topic_options[i]
+            format_func=lambda i: topic_options[i],
+            key="temporal_trends_topic_selector"
         )
         
         if selected_topic_indices:
@@ -874,7 +1031,8 @@ def display_papers_by_topic(data: Dict):
         selected_categories = st.multiselect(
             "Filter by Category:",
             options=categories,
-            default=categories[:4] if len(categories) > 4 else categories
+            default=categories[:4] if len(categories) > 4 else categories,
+            key="papers_category_filter"
         )
     
     with col2:
@@ -895,13 +1053,14 @@ def display_papers_by_topic(data: Dict):
             selected_topic_option = st.selectbox(
                 "Select Topic:",
                 options=topic_options,
-                format_func=lambda x: x[1]
+                format_func=lambda x: x[1],
+                key="papers_topic_filter"
             )
             
             selected_topic = selected_topic_option[0]
         else:
             # If topic info is not available, use a simple numeric input
-            selected_topic = st.number_input("Enter Topic ID:", min_value=-1, value=0)
+            selected_topic = st.number_input("Enter Topic ID:", min_value=-1, value=0, key="topic_id_input")
     
     # Filter papers
     filtered_papers = doc_topics.copy()
@@ -1018,7 +1177,8 @@ def display_collaboration_network(data: Dict):
         selected_topic_option = st.selectbox(
             "Select Topic for Collaboration Analysis:",
             options=topic_options,
-            format_func=lambda x: x[1]
+            format_func=lambda x: x[1],
+            key="collab_topic_selector"
         )
         
         selected_topic = selected_topic_option[0]
@@ -1242,7 +1402,7 @@ def display_collaboration_network(data: Dict):
                     # Display recent papers
                     if not author_papers.empty:
                         st.markdown("**Recent papers:**")
-                        for _, paper in author_papers.sort_values("published_date", ascending=False).head(3).iterrows():
+                        for i, (_, paper) in enumerate(author_papers.sort_values("published_date", ascending=False).head(3).iterrows()):
                             paper_id = paper["id"]
                             st.markdown(f"- [{paper_id}](https://arxiv.org/abs/{paper_id})")
             else:
@@ -1265,31 +1425,30 @@ def main():
     # Load available metadata files
     metadata_list = load_metadata_files()
     
+    # If no metadata is available, show a message and create sample data if requested
+    if not metadata_list:
+        if "create_sample" not in st.session_state:
+            st.session_state.create_sample = False
+            
+        create_sample = st.button("Create sample data for testing")
+        if create_sample or st.session_state.create_sample:
+            st.session_state.create_sample = True
+            sample_metadata = create_sample_data()
+            metadata_list = [sample_metadata]  # Set the metadata_list to include our sample
+        else:
+            st.warning("No topic analysis data found. Please run the topic analysis script first.")
+            # Show sample command to run the analysis
+            st.code("python topic_trends_analyzer.py --subjects math.AG math.AT --years 5", language="bash")
+            return
+    
     # Display sidebar and get selected dataset
     selected_metadata = display_sidebar(metadata_list)
-    
-    # If no metadata is available, show a message and exit
-    if not selected_metadata:
-        st.warning("No topic analysis data found. Please run the topic analysis script first.")
-        
-        # Show sample command to run the analysis
-        st.code(
-            "python topic_trends_analyzer.py --subjects math.AG math.AT --years 5",
-            language="bash"
-        )
-        
-        return
     
     # Load data for selected metadata
     data = load_topic_data(selected_metadata)
     
-    # Get selected page from session state (default to Overview)
-    page = st.sidebar.radio(
-    "Go to:",
-    ["Overview", "Topic Explorer", "Temporal Trends", "Emerging Topics", "Papers by Topic", "Collaboration Network"],
-    key="navigation"
-    )
-
+    # Use the page from session state that was set in the sidebar
+    page = st.session_state.current_page
     
     # Display the selected page
     if page == "Overview":
