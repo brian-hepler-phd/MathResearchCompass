@@ -1090,6 +1090,10 @@ def display_papers_by_topic(data: Dict):
         paper_url = f"https://arxiv.org/abs/{arxiv_id}"
         st.markdown(f"#### [{paper['title']}]({paper_url})")
         
+        if "authors" in paper and isinstance(paper["authors"], list) and paper["authors"]:
+            authors_str = ", ".join(paper["authors"])
+            st.markdown(f"**Authors**: {authors_str}")
+
         # Paper metadata
         st.markdown(f"**ID**: {arxiv_id} | **Date**: {paper['published_date']} | **Category**: {paper['primary_category']}")
         
