@@ -8,7 +8,7 @@
 
 Math Research Compass analyzes arXiv preprints to identify trending research topics across mathematical subfields. This interactive dashboard visualizes topic modeling results from thousands of recent mathematics papers, helping researchers and students discover emerging areas and popular research directions.
 
-Visit the live dashboard: [Math Research Compass](https://your-shiny-app-url)
+Visit the live dashboard: [Math Research Compass](https://brian-hepler-phd.shinyapps.io/mathresearchcompass/)
 
 ![Dashboard Preview](path/to/dashboard_screenshot.png)
 
@@ -114,7 +114,7 @@ pip install -r requirements.txt
 python app.py
 ```
 
-Visit http://localhost:8000 in your browser to view the dashboard.
+Visit https://brian-hepler-phd.shinyapps.io/mathresearchcompass/ in your browser to view the dashboard.
 
 ### Reproducing the Analysis
 
