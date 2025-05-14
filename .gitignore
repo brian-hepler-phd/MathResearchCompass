@@ -26,8 +26,11 @@ wheels/
 *.egg
 
 # Data files
-data/raw/
-data/cleaned/
+data/
+*.csv
+*.json
+
+# Results
 results/
 
 # Logs

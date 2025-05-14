@@ -1,236 +1,161 @@
-# Math Research Compass: arXiv Trends Dashboard 🧭
+# Math Research Compass
 
-**An interactive data science dashboard exploring research trends, emerging topics, and collaboration structures across mathematical subfields on arXiv.**
+![Math Research](https://img.shields.io/badge/Research-Mathematics-blue)
+![Topic Modeling](https://img.shields.io/badge/NLP-Topic%20Modeling-green)
+![Shiny App](https://img.shields.io/badge/App-Shiny-red)
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+## Overview
 
-![Dashboard Screenshot](results/images/dashboard_preview.png)
+Math Research Compass analyzes arXiv preprints to identify trending research topics across mathematical subfields. This interactive dashboard visualizes topic modeling results from thousands of recent mathematics papers, helping researchers and students discover emerging areas and popular research directions.
 
-## Table of Contents
-- [Project Overview](#project-overview)
-- [Motivation](#motivation)
-- [Features](#features)
-- [Technology Stack](#technology-stack)
-- [Current Status](#current-status)
-- [Setup and Installation](#setup-and-installation)
-- [Usage](#usage)
-- [Project Structure](#project-structure)
-- [Data Source](#data-source)
-- [Analysis Methodology](#analysis-methodology)
-- [Results & Visualizations](#results--visualizations)
-- [Future Work](#future-work)
-- [License](#license)
-- [Contact](#contact)
+Visit the live dashboard: [Math Research Compass](https://your-shiny-app-url)
 
-## Project Overview
-Math Research Compass is a data science project designed to provide insights into the recent landscape of mathematical research published on arXiv. It fetches preprint metadata, analyzes publication trends across different subfields (currently: Algebraic Geometry, Algebraic Topology, Representation Theory, Symplectic Geometry), identifies emerging research topics using Natural Language Processing (NLP), and explores potential collaboration patterns. The ultimate goal is to present these findings in an interactive web dashboard.
-
-## Motivation
-Navigating the vast amount of research on arXiv can be challenging, especially for students or researchers entering a new field. This project aims to:
-1.  Provide data-driven insights into the activity and focus areas within specific Mathematics subfields on arXiv.
-2.  Identify potentially "hot" or interdisciplinary research topics based on abstract/title analysis.
-3.  Explore collaboration dynamics by looking at co-authorship patterns.
-4.  Track how research topics emerge, evolve, and decline over time.
-
-## Features
-*   **Data Pipeline:** Fetches and preprocesses metadata for arXiv preprints within specified math categories and date ranges.
-*   **Trend Analysis:** Calculates and visualizes:
-    *   Yearly/Monthly publication counts per category.
-    *   Absolute and relative growth rates for different subfields.
-* **Topic Modeling:** Identifies key research themes using:
-  * BERTopic for semantic clustering of abstracts/titles, using Sentence-Transformers, UMAP, and HDBSCAN.
-  * Hierarchical topic representation to show relationships between research areas.
-  * Input texts are lemmatized using the `spaCy` NLP pipeline to improve topic quality and reduce lexical fragmentation.
-*   **Temporal Topic Analysis:** Tracks how topics evolve over time, showing growth and decline patterns.
-*   **Emerging Topics Detection:** Automatically identifies growing and declining research areas.
-*   **Interdisciplinarity Analysis:**
-    *   Identifies frequently co-listed category pairs.
-    *   Analyzes keywords specific to papers cross-listed between fields.
-*   **Collaboration Analysis:** Identifies top authors and frequent co-author pairs within fields using NetworkX.
-*   **Interactive Dashboard:** Presents analyses through interactive charts and visualizations using Streamlit and Plotly.
-
-## Technology Stack
-*   **Core:** Python 3.x, Pandas, NumPy
-*   **Data Acquisition:** `arxiv` (Python library for arXiv API)
-*   **Data Processing:** Pandas
-*   **NLP:** NLTK (tokenization, stopwords), spaCy (lemmatization), BERTopic, Sentence-Transformers
-*   **Clustering:** UMAP (dimensionality reduction), HDBSCAN (clustering)
-*   **Visualization:** Plotly Express, Matplotlib, Seaborn, WordCloud
-*   **Dashboarding:** Streamlit
-*   **Network Analysis:** NetworkX
-*   **Version Control:** Git, GitHub
-*   **Environment:** `venv` (Python virtual environments)
-
-## Current Status
-**In Progress**
-*   ✅ Data acquisition pipeline implemented (`fetch_data.py`).
-*   ✅ Data cleaning and preprocessing script functional (`process_data.py`).
-*   ✅ Initial growth trend analysis implemented.
-*   ✅ BERTopic modeling implemented, including hierarchical topic analysis.
-*   ✅ Topic temporal tracking and emerging topics identification.
-*   ✅ Streamlit dashboard with multiple views (overview, topic explorer, temporal trends).
-*   ✅ Collaboration network analysis and visualization.
-*   ⏳ Fine-tuning topic representations with LLM-based labels.
-*   ⏳ Deployment of the Streamlit application to cloud services.
-
-## Setup and Installation
-
-### Prerequisites
-- Python 3.8+ installed
-- Virtual environment tool (venv, conda, etc.)
-- Git (for cloning the repository)
-
-### Step 1: Clone the repository
-```bash
-git clone https://github.com/brian-hepler-phd/MathResearchCompass.git
-cd MathResearchCompass
-```
-
-### Step 2: Set up a virtual environment
-```bash
-python -m venv venv
-source venv/bin/activate  # On Windows use `venv\Scripts\activate`
-```
-
-### Step 3: Install dependencies
-```bash
-pip install -r requirements.txt
-```
-
-### Step 4: Download required models and data
-```bash
-# Download spaCy model
-python -m spacy download en_core_web_sm
-
-# Download NLTK data
-python -c "import nltk; nltk.download('punkt'); nltk.download('stopwords'); nltk.download('wordnet'); nltk.download('omw-1.4')"
-```
-
-## Usage
-
-### Option 1: Run the complete pipeline
-This script will fetch data, run analysis, and launch the dashboard:
-
-```bash
-python run_analysis_pipeline.py
-```
-
-### Option 2: Run individual components
-
-#### 1. Fetch Data
-Modify parameters in `fetch_data.py` (categories, dates) if desired, then run:
-```bash
-python fetch_data.py
-```
-This will generate the raw CSV file (e.g., `arxiv_math_papers_raw.csv`).
-
-#### 2. Process Data
-Run the cleaning script:
-```bash
-python process_data.py
-```
-This uses the raw CSV and outputs a cleaned version (e.g., `arxiv_math_papers_cleaned.csv`).
-
-#### 3. Run Topic Analysis
-Execute the topic analysis script to generate visualizations and trend data:
-```bash
-python topic_trends_analyzer.py --subjects math.AG math.AT --years 5
-```
-
-#### 4. Launch the Dashboard
-```bash
-streamlit run app.py
-```
-This will start the Streamlit server and open the dashboard in your web browser.
+![Dashboard Preview](path/to/dashboard_screenshot.png)
 
 ## Project Structure
 
-```text
-MathResearchCompass/
-├── venv/                           # Virtual environment directory
-├── compass/                        # Package with core utilities
-│   ├── __init__.py                 # Package initialization
-│   ├── io.py                       # Data loading and saving functions
-│   ├── metrics.py                  # Growth trend metrics
-│   ├── topic.py                    # Topic modeling utilities
-│   └── network.py                  # Collaboration network analysis
-├── data/                           # Directory for data files
-│   ├── raw/                        # Raw data from fetch script
-│   └── cleaned/                    # Cleaned data from processing
-├── results/                        # Analysis results
-│   ├── plots/                      # Generated visualizations
-│   ├── topics/                     # Topic modeling results
-│   └── images/                     # Static images for documentation
-├── scripts/                        # Analysis and utility scripts
-│   ├── fetch_data.py               # Script to fetch data from arXiv
-│   ├── process_data.py             # Data cleaning/preprocessing script
-│   └── analyze_data.py             # Data analysis script
-├── notebooks/                      # Jupyter notebooks
-│   ├── TF-IDF_playground.ipynb     # TF-IDF analysis notebook
-│   └── BERT_Playground.ipynb       # BERTopic analysis notebook
-├── topic_trends_analyzer.py        # Advanced topic trends analysis
-├── app.py                          # Streamlit dashboard
-├── run_analysis_pipeline.py        # End-to-end pipeline runner
-├── requirements.txt                # Project dependencies
-└── README.md                       # This file
+- `app.py` - The Shiny dashboard application
+- `category_distribution.py` - Analyzes the distribution of arXiv categories across topics
+- `topic_trends_analyzer.py` - Performs topic modeling analysis on arXiv papers
+- `topic_labeling.py` - Enhances topic labels using Claude AI
+- `workflow.ipynb` - Complete data processing workflow documentation
+
+## Data Processing Workflow
+
+### 1. Data Collection and Filtering
+
+The project uses data from the [Kaggle ArXiv dataset](https://www.kaggle.com/datasets/Cornell-University/arxiv), containing approximately 2.7 million arXiv papers. The dataset includes:
+
+- `id`: ArXiv ID
+- `submitter`: Paper submitter
+- `authors`: Paper authors
+- `title`: Paper title
+- `comments`: Additional information (pages, figures)
+- `journal-ref`: Journal publication information
+- `doi`: Digital Object Identifier
+- `abstract`: Paper abstract
+- `categories`: arXiv categories/tags
+- `versions`: Version history
+
+We filter this dataset to focus exclusively on mathematics papers.
+
+### 2. Topic Modeling with BERTopic
+
+We use BERTopic to identify coherent research topics within the mathematics papers. The process:
+
+1. Process abstracts and titles of papers
+2. Create embeddings using Sentence-BERT
+3. Apply dimensionality reduction using UMAP
+4. Perform clustering with HDBSCAN
+5. Extract representative keywords for each topic
+
+This produces:
+- Topic IDs (numerical labels)
+- Topic counts (number of papers in each topic)
+- Topic names (generated from keywords)
+- Representative keywords for each topic
+- Representative documents for each topic
+
+### 3. Merging Document-Topic Assignments
+
+Each paper is matched with its assigned topic, creating a dataset that links paper metadata with topic assignments.
+
+### 4. Enhancing Topic Labels with Claude
+
+The raw topic labels from BERTopic are improved using Claude (Anthropic's LLM) to generate more descriptive and human-readable topic labels. Claude is prompted with:
+- The list of top keywords for each topic
+- The mathematical subject areas
+- A request to generate both a concise and detailed descriptive label
+
+This produces two labels for each topic:
+1. A concise label (3-5 words)
+2. A descriptive label specifying the mathematical subfield
+
+### 5. Creating the Final Dataset
+
+All components are merged to create a comprehensive dataset containing papers with their topic assignments and enhanced labels.
+
+### 6. Preparing Data for Visualization
+
+A summary dataset is created for the dashboard visualization, focusing on the key details needed for interactive exploration.
+
+### 7. Category Distribution Analysis
+
+The final processing step calculates the distribution of arXiv categories within each topic and determines the primary category for each topic:
+
+1. Calculating the frequency of each arXiv category within each topic
+2. Creating a dictionary mapping topics to their category distributions
+3. Determining the primary category for each topic (most frequent category)
+4. Updating the dataset with the primary_category column
+
+The final dataset includes:
+- `topic`: numerical topic ID
+- `count`: number of papers in the topic
+- `descriptive_label`: human-readable topic description
+- `primary_category`: the most common arXiv category in that topic
+
+## Usage
+
+### Installation
+
+```bash
+# Clone the repository
+git clone https://github.com/yourusername/math-research-compass.git
+cd math-research-compass
+
+# Install requirements
+pip install -r requirements.txt
 ```
 
-## Data Source
-*   **Source:** [arXiv API](https://arxiv.org/help/api/index)
-*   **Access Method:** Python `arxiv` library
-*   **Scope:** Metadata (title, authors, abstract, categories, dates) for preprints primarily categorized under [ 'math.AG', 'math.AT', 'math.RT', 'math.SG'] between 2019-01-01 and 2025-04-30.
+### Running the Dashboard
 
-## Analysis Methodology
+```bash
+# Launch the Shiny app
+python app.py
+```
 
-### Topic Modeling Approach
-Our topic modeling approach uses BERTopic, which combines:
-1. **Sentence Embeddings**: Using transformer-based models (e.g., all-MiniLM-L6-v2) to create high-quality document representations.
-2. **Dimensionality Reduction**: UMAP transforms the high-dimensional embeddings into a space suitable for clustering.
-3. **Clustering**: HDBSCAN identifies document clusters that represent coherent topics.
-4. **Topic Representation**: Keywords are extracted using class-based TF-IDF (c-TF-IDF) for interpretable topic representation.
-5. **Hierarchical Topic Structure**: Topics are organized in a hierarchical structure to show relationships between research areas.
+Visit http://localhost:8000 in your browser to view the dashboard.
 
-### Temporal Trends Analysis
-- Documents are grouped by time periods (month, quarter, or year)
-- Topic frequencies are calculated for each time period
-- Growth rates and trends are identified using linear regression on topic frequency curves
-- Topics are classified as "emerging" or "declining" based on normalized slope values
+### Reproducing the Analysis
 
-### Collaboration Network Analysis
-- Co-authorship networks are constructed using NetworkX
-- Author relationships are weighted by the number of co-authored papers
-- Network metrics (degree, centrality) identify key collaborative researchers
-- Community detection algorithms identify research groups
+To recreate the topic modeling analysis from scratch:
 
-## Results & Visualizations
+```bash
+# Run the topic modeling analysis
+python topic_trends_analyzer.py --custom-csv data/cleaned/math_arxiv_snapshot.csv --years 5
 
-### Topic Hierarchy Visualization
-The dashboard provides an interactive visualization of how research topics are related hierarchically:
+# Enhance topic labels with Claude AI
+export ANTHROPIC_API_KEY=your_claude_api_key
+python topic_labeling.py
 
-![Topic Hierarchy Example](results/images/hierarchical_clustering_AG.png)
+# Calculate category distributions
+python category_distribution.py
+```
 
-### Temporal Trends
-Visualizations show how topic frequencies evolve over time:
+## Features
 
-![Topic Trends Example](results/images/publ_volume_chart.png)
+- Interactive visualization of mathematical research topics
+- Filtering by mathematical subfields (31 arXiv math categories)
+- Display of top research topics by paper count
+- Topic breakdown by primary mathematical category
+- Summary statistics for papers and topics
 
-### Emerging Topics
-The system automatically identifies research areas with rapid growth:
+## Technologies
 
-![Emerging Topics Example](results/images/emerging_topics.png)
-
-## Future Work
-*   [ ] Enhance topic labeling using LLMs for more descriptive topic names
-*   [ ] Expand analysis to include more mathematical subjects
-*   [ ] Incorporate citation data for impact analysis
-*   [ ] Add citation network analysis to complement collaboration networks
-*   [ ] Deploy as a public web service for broader accessibility
-*   [ ] Add predictive modeling to forecast future research trends
-*   [ ] Improve topic stability across time periods
-*   [ ] Develop dynamic topic models to better capture evolving research interests
+- **BERTopic**: Advanced topic modeling combining BERT embeddings with clustering
+- **Sentence-BERT**: Generating semantically meaningful embeddings
+- **UMAP & HDBSCAN**: Dimensionality reduction and clustering
+- **Claude AI**: Enhanced topic labeling and interpretation
+- **Shiny for Python**: Interactive web dashboard
+- **Plotly**: Interactive data visualizations
+- **Pandas & NumPy**: Data processing and analysis
 
 ## License
-This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md) file for details. 
 
-## Contact
-Brian Hepler - [GitHub Profile](https://github.com/brian-hepler-phd) - [LinkedIn Profile](https://www.linkedin.com/in/brian-hepler-phd/)
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+## Acknowledgments
+
+- ArXiv for providing access to research paper metadata
+- Kaggle for hosting the ArXiv dataset
+- Anthropic for the Claude API used in topic labeling

@@ -14,7 +14,6 @@ Usage:
 """
 
 import os
-import gc
 import sys
 import argparse
 import logging
@@ -46,16 +45,6 @@ logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
 logger = logging.getLogger("topic_trends")
-
-# Disable tokenizers parallelism warning
-os.environ["TOKENIZERS_PARALLELISM"] = "false"
-
-# Set number of threads for different libraries
-os.environ["OMP_NUM_THREADS"] = "8"          # OpenMP threads
-os.environ["OPENBLAS_NUM_THREADS"] = "8"     # OpenBLAS threads
-os.environ["MKL_NUM_THREADS"] = "8"          # MKL threads
-os.environ["VECLIB_MAXIMUM_THREADS"] = "8"   # Accelerate threads
-os.environ["NUMEXPR_NUM_THREADS"] = "8"      # NumExpr threads
 
 # Constants
 DATA_DIR = Path("data")
@@ -103,16 +92,10 @@ def parse_arguments():
         description="Analyze topic trends in arXiv math papers over time"
     )
     parser.add_argument(
-        "--custom-csv",
-        type=str,
-        default="data/cleaned/math_arxiv_snapshot.csv",
-        help="Path to the CSV file with pre-cleaned arXiv math data"
-    )
-    parser.add_argument(
-        "--categories", 
+        "--subjects", 
         nargs="+", 
-        default=None,
-        help="Optional: Specific math categories to filter from the CSV (e.g., math.AG math.AT). If not specified, all math categories will be analyzed."
+        default=["math.AG", "math.AT", "math.RT", "math.SG"],
+        help="arXiv subject categories to analyze"
     )
     parser.add_argument(
         "--years", 
@@ -134,16 +117,9 @@ def parse_arguments():
         help="Time interval for temporal analysis"
     )
     parser.add_argument(
-        "--batch-size",
-        type=int,
-        default=10000,
-        help="Number of documents to process in each batch for temporal analysis"
-    )
-    parser.add_argument(
-        "--num-threads",
-        type=int,
-        default=8,
-        help="Number of threads to use for parallel processing"
+        "--force-download", 
+        action="store_true",
+        help="Force re-download of data even if it exists"
     )
     parser.add_argument(
         "--verbose", 
@@ -294,51 +270,6 @@ def load_data(subjects):
     
     return combined_df
 
-def load_custom_csv(csv_path):
-    """
-    Load a pre-cleaned CSV file with arXiv papers.
-    
-    Args:
-        csv_path: Path to the CSV file
-    
-    Returns:
-        DataFrame with paper data
-    """
-    logger.info(f"Loading custom CSV file: {csv_path}")
-    
-    try:
-        df = pd.read_csv(csv_path)
-        logger.info(f"Loaded {len(df)} papers from {csv_path}")
-        
-        # Convert date columns to datetime
-        if "update_date" in df.columns:
-            df["updated_date"] = pd.to_datetime(df["update_date"])
-            
-        # We need a 'published_date' for the temporal analysis
-        if "published_date" not in df.columns and "updated_date" in df.columns:
-            df["published_date"] = df["updated_date"]
-        
-        # Create time fields for analysis
-        if "published_date" in df.columns:
-            df["year"] = pd.to_datetime(df["published_date"]).dt.year
-            df["month"] = pd.to_datetime(df["published_date"]).dt.month
-            df["quarter"] = pd.to_datetime(df["published_date"]).dt.quarter
-            df["yearmonth"] = pd.to_datetime(df["published_date"]).dt.to_period("M")
-            df["yearquarter"] = df.apply(
-                lambda x: f"{pd.to_datetime(x['published_date']).year}-Q{pd.to_datetime(x['published_date']).quarter}",
-                axis=1
-            )
-        
-        # Create text field for NLP
-        if "text_for_nlp" not in df.columns and "title" in df.columns and "abstract" in df.columns:
-            df["text_for_nlp"] = df["title"] + " " + df["abstract"]
-        
-        return df
-    
-    except Exception as e:
-        logger.error(f"Error loading {csv_path}: {e}")
-        return pd.DataFrame()
-
 
 def prepare_data(subjects, force_download=False):
     """
@@ -381,7 +312,14 @@ def build_advanced_topic_model(
     n_gram_range=(1, 3)
 ):
     """
-    Build an enhanced BERTopic model with improved parameters for large datasets.
+    Build an enhanced BERTopic model with improved parameters.
+    
+    Args:
+        min_topic_size: Minimum size of topics
+        n_gram_range: Range of n-grams to consider
+    
+    Returns:
+        Configured BERTopic model (unfitted)
     """
     # Set up the vectorizer with n-grams
     vectorizer_model = CountVectorizer(
@@ -394,38 +332,36 @@ def build_advanced_topic_model(
     # Use a better-tuned embedding model
     embedding_model = SentenceTransformer("all-MiniLM-L6-v2")
     
-    # UMAP - Optimized for large datasets
+    # UMAP - Better parameters for mathematical topics
     umap_model = UMAP(
         n_neighbors=15,
-        n_components=5,        # Reduced from 10 for faster processing
-        min_dist=0.1,          # Slightly increased for faster convergence
+        n_components=10,  # More components can capture more subtle variations
+        min_dist=0.05,
         metric="cosine",
-        low_memory=False,      # Faster but uses more memory
+        low_memory=True,
         random_state=42
     )
     
-    # HDBSCAN - Optimized for large datasets
+    # HDBSCAN - Improved clustering settings
     hdbscan_model = HDBSCAN(
         min_cluster_size=min_topic_size,
         min_samples=5,
         metric="euclidean",
         cluster_selection_method="eom",
-        prediction_data=True,
-        algorithm="best",      # Let HDBSCAN choose the fastest algorithm
-        core_dist_n_jobs=-1    # Use all CPU cores
+        prediction_data=True
     )
     
     # Create custom representation model
     representation_model = KeyBERTInspired()
     
-    # Create and return the model with optimized settings
+    # Create and return the model
     topic_model = BERTopic(
         embedding_model=embedding_model,
         umap_model=umap_model,
         hdbscan_model=hdbscan_model,
         vectorizer_model=vectorizer_model,
         representation_model=representation_model,
-        calculate_probabilities=False,  # Set to False for better performance
+        calculate_probabilities=True,
         verbose=True
     )
     
@@ -585,164 +521,6 @@ def analyze_temporal_trends(
         "declining_topics": declining
     }
 
-
-def analyze_temporal_trends_in_batches(
-    model,
-    df,
-    topics,
-    time_interval="quarter",
-    batch_size=10000
-):
-    """
-    Analyze how topics evolve over time using batch processing.
-    
-    Args:
-        model: Fitted BERTopic model
-        df: DataFrame with paper data
-        topics: Document topic assignments
-        time_interval: Time interval for analysis ("month", "quarter", or "year")
-        batch_size: Size of batches to process
-    
-    Returns:
-        Dictionary with temporal analysis results
-    """
-    logger.info(f"Analyzing temporal trends in batches using {time_interval} intervals")
-    
-    # Map time interval to the appropriate dataframe column
-    interval_column_map = {
-        "month": "yearmonth",
-        "quarter": "yearquarter",
-        "year": "year"
-    }
-    
-    # Convert timestamps to strings
-    timestamps_col = df[interval_column_map[time_interval]]
-    
-    # Convert to strings with extra validation
-    timestamps = []
-    for t in timestamps_col:
-        timestamps.append(str(t))
-    
-    # Get documents for BERTopic
-    docs = df["text_for_nlp"].tolist()
-    
-    # Create batches for processing
-    num_docs = len(docs)
-    num_batches = (num_docs + batch_size - 1) // batch_size
-    
-    logger.info(f"Processing temporal analysis in {num_batches} batches")
-    
-    # Initialize combined results
-    combined_topics_over_time = None
-    
-    # Process in batches
-    for i in range(num_batches):
-        start_idx = i * batch_size
-        end_idx = min((i + 1) * batch_size, num_docs)
-        
-        logger.info(f"Processing batch {i+1}/{num_batches} (documents {start_idx}-{end_idx})")
-        
-        batch_docs = docs[start_idx:end_idx]
-        batch_topics = topics[start_idx:end_idx]
-        batch_timestamps = timestamps[start_idx:end_idx]
-        
-        try:
-            # Process this batch
-            batch_tot = model.topics_over_time(
-                batch_topics, 
-                batch_timestamps, 
-                nr_bins=None
-            )
-            
-            # Combine with previous results
-            if combined_topics_over_time is None:
-                combined_topics_over_time = batch_tot
-            else:
-                # Group by Topic and Timestamp, sum Frequency
-                combined_tot_dict = {}
-                for _, row in combined_topics_over_time.iterrows():
-                    key = (row["Topic"], row["Timestamp"])
-                    combined_tot_dict[key] = row["Frequency"]
-                
-                # Add batch frequencies
-                for _, row in batch_tot.iterrows():
-                    key = (row["Topic"], row["Timestamp"])
-                    if key in combined_tot_dict:
-                        combined_tot_dict[key] += row["Frequency"]
-                    else:
-                        combined_tot_dict[key] = row["Frequency"]
-                
-                # Recreate DataFrame
-                data = []
-                for (topic, timestamp), frequency in combined_tot_dict.items():
-                    data.append({"Topic": topic, "Timestamp": timestamp, "Frequency": frequency})
-                
-                combined_topics_over_time = pd.DataFrame(data)
-            
-            # Free up memory
-            del batch_tot
-            gc.collect()
-            
-        except Exception as e:
-            logger.warning(f"Error processing batch {i+1}: {e}")
-    
-    if combined_topics_over_time is None:
-        logger.error("Failed to generate topics over time")
-        return {
-            "topics_over_time": [],
-            "trends": {},
-            "emerging_topics": [],
-            "declining_topics": []
-        }
-    
-    # Continue with trend analysis as before
-    topic_info = model.get_topic_info()
-    trends = {}
-    
-    # Only analyze actual topics (not outliers)
-    for topic_id in topic_info[topic_info["Topic"] != -1]["Topic"]:
-        topic_data = combined_topics_over_time[combined_topics_over_time["Topic"] == topic_id]
-        
-        if len(topic_data) > 1:  # Ensure enough data points
-            # Calculate growth metrics
-            topic_freq = topic_data["Frequency"].values
-            growth_abs = topic_freq[-1] - topic_freq[0]
-            growth_rel = (topic_freq[-1] / topic_freq[0] - 1) * 100 if topic_freq[0] > 0 else 0
-            
-            # Calculate trend indicators (using simple linear regression)
-            x = np.arange(len(topic_freq))
-            slope = np.polyfit(x, topic_freq, 1)[0]
-            normalized_slope = slope / np.mean(topic_freq) if np.mean(topic_freq) > 0 else 0
-            
-            trends[topic_id] = {
-                "name": topic_info[topic_info["Topic"] == topic_id]["Name"].iloc[0],
-                "frequency": topic_freq.tolist(),
-                "timestamps": topic_data["Timestamp"].tolist(),
-                "growth_absolute": float(growth_abs),
-                "growth_relative": float(growth_rel),
-                "trend_slope": float(slope),
-                "normalized_slope": float(normalized_slope)
-            }
-    
-    # Identify top emerging and declining topics
-    sorted_topics = sorted(trends.items(), key=lambda x: x[1]["normalized_slope"], reverse=True)
-    
-    emerging = [
-        {"id": t_id, **t_data} 
-        for t_id, t_data in sorted_topics[:10]
-    ]
-    
-    declining = [
-        {"id": t_id, **t_data} 
-        for t_id, t_data in sorted_topics[-10:]
-    ]
-    
-    return {
-        "topics_over_time": combined_topics_over_time.to_dict(orient="records"),
-        "trends": trends,
-        "emerging_topics": emerging,
-        "declining_topics": declining
-    }
 
 def create_visualizations(
     model, 
@@ -944,32 +722,14 @@ def save_topic_data(model, df, topics, temporal_data):
             ]
         json.dump(serializable_keywords, f)
     
-    # 3. Save document-topic mappings with flexible column handling
-    doc_topics_dict = {
-        "id": df["id"].tolist() if "id" in df.columns else range(len(df)),
+    # 3. Save document-topic mappings
+    doc_topics = pd.DataFrame({
+        "id": df["id"].tolist(),
         "title": df["title"].tolist(),
-        "topic": topics
-    }
-    
-    # Add published_date if available
-    if "published_date" in df.columns:
-        doc_topics_dict["published_date"] = df["published_date"].dt.strftime("%Y-%m-%d").tolist()
-    else:
-        doc_topics_dict["published_date"] = ["2023-01-01"] * len(df)  # Default date
-    
-    # Add primary_category if available
-    if "primary_category" in df.columns:
-        doc_topics_dict["primary_category"] = df["primary_category"].tolist()
-    elif "categories" in df.columns:
-        # Use the first category from categories if it exists
-        doc_topics_dict["primary_category"] = df["categories"].apply(
-            lambda x: str(x).split(",")[0].strip() if pd.notna(x) else "unknown"
-        ).tolist()
-    else:
-        doc_topics_dict["primary_category"] = ["math.XX"] * len(df)  # Default category
-    
-    # Create and save the document-topic dataframe
-    doc_topics = pd.DataFrame(doc_topics_dict)
+        "topic": topics,
+        "published_date": df["published_date"].dt.strftime("%Y-%m-%d").tolist(),
+        "primary_category": df["primary_category"].tolist()
+    })
     doc_topics.to_csv(TOPIC_DIR / f"document_topics_{timestamp}.csv", index=False)
     
     # 4. Save temporal trend data
@@ -977,15 +737,12 @@ def save_topic_data(model, df, topics, temporal_data):
         json.dump(temporal_data, f, cls=NumpyJSONEncoder)
     
     # 5. Create a metadata file with information about this run
-    subjects = df["primary_category"].unique().tolist() if "primary_category" in df.columns else ["math.XX"]
-    year_range = [int(df["year"].min()), int(df["year"].max())] if "year" in df.columns else [2020, 2023]
-    
     metadata = {
         "timestamp": timestamp,
         "num_documents": len(df),
         "num_topics": len(topic_info[topic_info["Topic"] != -1]),
-        "subjects": subjects,
-        "year_range": year_range,
+        "subjects": df["primary_category"].unique().tolist(),
+        "year_range": [int(df["year"].min()), int(df["year"].max())],
         "file_references": {
             "topic_info": f"topic_info_{timestamp}.csv",
             "topic_keywords": f"topic_keywords_{timestamp}.json",
@@ -1022,22 +779,12 @@ def main():
     if args.verbose:
         logging.getLogger().setLevel(logging.DEBUG)
     
-    # Load data from the custom CSV
-    df = load_custom_csv(args.custom_csv)
+    # Prepare data
+    df = prepare_data(args.subjects, force_download=args.force_download)
     
     if df.empty:
         logger.error("No data available for analysis. Exiting.")
         return
-    
-    # Filter by specific categories if requested
-    if args.categories:
-        logger.info(f"Filtering for specific categories: {', '.join(args.categories)}")
-        # Create a regex pattern to match any of the specified categories
-        pattern = '|'.join(args.categories)
-        df = df[df['categories'].str.contains(pattern, na=False)]
-        logger.info(f"After filtering: {len(df)} papers")
-    else:
-        logger.info(f"Analyzing all math categories in the dataset: {len(df)} papers")
     
     # Filter to recent years
     df_recent = filter_recent_years(df, args.years)
@@ -1046,22 +793,11 @@ def main():
         logger.error(f"No data found for the last {args.years} years. Exiting.")
         return
     
-    # Clear memory before heavy computation
-    del df
-    gc.collect()
-    
     # Run topic modeling
     model, topics, probs = run_topic_modeling(df_recent, min_topic_size=args.min_topic_size)
     
-    # Analyze temporal trends using batch processing
-    logger.info("Starting temporal analysis with batch processing")
-    temporal_data = analyze_temporal_trends_in_batches(
-        model, 
-        df_recent, 
-        topics, 
-        time_interval=args.time_interval,
-        batch_size=10000  # Adjust based on available memory
-    )
+    # Analyze temporal trends
+    temporal_data = analyze_temporal_trends(model, df_recent, topics, time_interval=args.time_interval)
     
     # Create visualizations
     create_visualizations(model, df_recent, topics, temporal_data)
@@ -1070,6 +806,7 @@ def main():
     save_topic_data(model, df_recent, topics, temporal_data)
     
     logger.info("Topic analysis complete!")
+
 
 if __name__ == "__main__":
     main()
