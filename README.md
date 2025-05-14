@@ -10,7 +10,7 @@ Math Research Compass analyzes arXiv preprints to identify trending research top
 
 Visit the live dashboard: [Math Research Compass](https://brian-hepler-phd.shinyapps.io/mathresearchcompass/)
 
-![Dashboard Preview](path/to/dashboard_screenshot.png)
+![Dashboard Preview](images/dashboard_homepage.png)
 
 ## Project Structure
 
