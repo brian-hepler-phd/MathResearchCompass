@@ -1,3 +1,6 @@
+# Updated .gitignore for Math Research Compass
+# Excludes large datasets but includes essential deployment files
+
 # Virtual Environment
 venv/
 env/
@@ -25,13 +28,28 @@ wheels/
 .installed.cfg
 *.egg
 
-# Data files
-data/
+# Large CSV datasets (exclude these - not needed for deployment)
+data/raw/
+data/cleaned/*.csv
 *.csv
+
+# Large JSON datasets (exclude most, but allow specific ones)
+results/topics/topic_keywords_*.json
+results/topics/top_authors_by_topic.json
+results/topics/topic_category_distribution.json
+results/network_analysis/
 *.json
 
-# Results
+# BUT ALLOW these essential files for deployment:
+!data/dashboard.db
+!railway.json
+!requirements*.txt
+!Dockerfile
+
+# Results directory - exclude most but allow essential configs
 results/
+!results/topics/
+!results/topics/*.json
 
 # Logs
 *.log
@@ -41,3 +59,11 @@ results/
 .vscode/
 *.swp
 *.swo
+
+# Temporary files
+*.tmp
+*.temp
+
+# OS files
+.DS_Store
+Thumbs.db
