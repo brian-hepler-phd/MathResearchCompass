@@ -8,7 +8,7 @@
 
 Math Research Compass analyzes arXiv preprints to identify trending research topics across mathematical subfields. This interactive dashboard visualizes topic modeling results from over 121,000 recent mathematics papers, helping researchers and students discover emerging areas and popular research directions.
 
-The application uses advanced natural language processing to cluster semantically related papers and identify coherent research themes. Recent optimizations have improved performance dramatically, reducing loading times from 30-60 seconds to under 5 seconds through database architecture improvements.
+The application uses advanced natural language processing to cluster semantically related papers and identify coherent research themes. Recent optimizations have improved performance dramatically, reducing loading times from 15-20 seconds to under 5 seconds through database architecture improvements.
 
 **Live Dashboard**: [Math Research Compass](https://brian-hepler-phd.shinyapps.io/mathresearchcompass1/)
 
@@ -64,7 +64,7 @@ The application migrated from CSV file processing to an optimized SQLite databas
 - `topic_category_distribution` - Category breakdowns within topics
 - `topic_top_authors` - Author rankings by paper count per topic
 
-This migration reduced initial loading time by over 15,000x and memory usage by 75%.
+This migration reduced initial loading time by 4-5x and optimized memory usage significantly.
 
 ### 5. Category Distribution Analysis
 
@@ -187,8 +187,8 @@ The application is built with:
 
 | Metric | Before Optimization | After Optimization | Improvement |
 |--------|-------------------|-------------------|-------------|
-| Initial Load Time | 30-60 seconds | 2-5 seconds | 15,000x faster |
-| Memory Usage | 2-4 GB | <1 GB | 75% reduction |
+| Initial Load Time | 15-20 seconds | 2-5 seconds | 4-5x faster |
+| Memory Usage | Reduced | <1 GB | Optimized |
 | Query Response | N/A | <0.1 seconds | New capability |
 | Concurrent Users | 1-2 | 50+ | 25x increase |
 
