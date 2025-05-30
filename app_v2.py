@@ -590,4 +590,8 @@ if __name__ == "__main__":
     print("📊 Database-powered for lightning-fast performance!")
     print("🌐 Ready for professional deployment on Heroku!")
     
-    app.run(host=host, port=port)
+    app.run(
+        host=host, 
+        port=port,
+        reload=False,
+        log_level="info")
