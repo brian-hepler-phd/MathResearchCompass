@@ -1,1 +1,1 @@
-web: python app_v2.py
+web: python -m uvicorn app_v2:app --host 0.0.0.0 --port $PORT --workers 1

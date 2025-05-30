@@ -594,4 +594,4 @@ if __name__ == "__main__":
         host=host, 
         port=port,
         reload=False,
-        log_level="info")
+        )
