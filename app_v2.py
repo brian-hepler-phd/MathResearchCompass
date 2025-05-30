@@ -4,12 +4,10 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 import numpy as np
-import matplotlib.pyplot as plt
 import json
 import ast  # For safely evaluating string representations of lists
 import base64
 import io
-from wordcloud import WordCloud
 import tempfile
 import os
 
