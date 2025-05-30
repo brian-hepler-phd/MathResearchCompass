@@ -581,16 +581,15 @@ def server(input, output, session):
 print("🎉 Math Research Compass ready to launch!")
 app = App(app_ui, server)
 
-# Railway deployment configuration
+# Heroku deployment configuration
 if __name__ == "__main__":
-    import os
     
-    # Railway provides PORT environment variable
+    # Heroku provides PORT environment variable
     port = int(os.environ.get("PORT", 8000))
-    host = "0.0.0.0"  # Important: bind to all interfaces for Railway
+    host = "0.0.0.0"  # Important: bind to all interfaces for Heroku
     
     print(f"🚀 Starting Math Research Compass on {host}:{port}")
     print("📊 Database-powered for lightning-fast performance!")
-    print("🌐 Ready for Railway deployment!")
+    print("🌐 Ready for professional deployment on Heroku!")
     
     app.run(host=host, port=port)
