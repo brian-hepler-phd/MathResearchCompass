@@ -10,7 +10,7 @@ Math Research Compass analyzes arXiv preprints to identify trending research top
 
 The application uses advanced natural language processing to cluster semantically related papers and identify coherent research themes. Recent optimizations have improved performance dramatically, reducing loading times from 30-60 seconds to under 5 seconds through database architecture improvements.
 
-**Live Dashboard**: [Math Research Compass](https://brian-hepler-phd.shinyapps.io/mathresearchcompass/)
+**Live Dashboard**: [Math Research Compass](https://brian-hepler-phd.shinyapps.io/mathresearchcompass1/)
 
 ## Project Structure
 
