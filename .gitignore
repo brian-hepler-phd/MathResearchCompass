@@ -33,6 +33,11 @@ data/raw/
 data/cleaned/*.csv
 *.csv
 
+# Additional Scripts not used for deployment
+scripts/additional_src/
+scripts/notebooks/
+write-up/
+
 # Large JSON datasets (exclude most, but allow specific ones)
 results/topics/topic_keywords_*.json
 results/topics/top_authors_by_topic.json
