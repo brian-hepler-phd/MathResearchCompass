@@ -37,6 +37,8 @@ data/cleaned/*.csv
 scripts/additional_src/
 scripts/notebooks/
 write-up/
+!scripts/optimized_data_manager.py
+!create_database.py
 
 # Large JSON datasets (exclude most, but allow specific ones)
 results/topics/topic_keywords_*.json
