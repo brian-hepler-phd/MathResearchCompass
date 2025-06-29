@@ -152,69 +152,6 @@ def create_collaboration_network_plot(network_data):
     
     return fig
 
-def generate_sample_network(topic_id, collaboration_metrics, top_authors_list):
-    """Generate a sample network visualization when pre-computed networks aren't available."""
-    if not collaboration_metrics or collaboration_metrics.get('num_authors', 0) == 0:
-        return None
-    
-    # Use actual author names from top authors list
-    author_names = []
-    author_papers = []
-    
-    if top_authors_list and len(top_authors_list) > 0:
-        # Use real author names from the topic
-        for author_info in top_authors_list[:min(15, len(top_authors_list))]:
-            name = author_info.get('author_name', 'Unknown')
-            papers = author_info.get('paper_count', 1)
-            
-            # Format author name (handle "Last, First" format)
-            if ',' in name and len(name.split(',')) == 2:
-                last, first = name.split(',', 1)
-                formatted_name = f"{first.strip()} {last.strip()}"
-            else:
-                formatted_name = name
-            
-            author_names.append(formatted_name)
-            author_papers.append(papers)
-    else:
-        # Fallback to generic names
-        num_nodes = min(15, max(5, int(collaboration_metrics.get('num_authors', 10) * 0.1)))
-        for i in range(num_nodes):
-            author_names.append(f"Author {i+1}")
-            author_papers.append(random.randint(1, 8))
-    
-    # Create a small random network
-    num_nodes = len(author_names)
-    if num_nodes < 3:
-        return None
-        
-    G = nx.barabasi_albert_graph(num_nodes, min(2, num_nodes-1))
-    
-    # Generate layout
-    pos = nx.spring_layout(G, k=1, iterations=50)
-    
-    # Create nodes data
-    nodes = []
-    for i, (node, (x, y)) in enumerate(pos.items()):
-        nodes.append({
-            'name': author_names[i] if i < len(author_names) else f"Author {i+1}",
-            'x': x,
-            'y': y,
-            'size': author_papers[i] if i < len(author_papers) else random.randint(1, 5)
-        })
-    
-    # Create edges data
-    edges = []
-    for edge in G.edges():
-        x0, y0 = pos[edge[0]]
-        x1, y1 = pos[edge[1]]
-        edges.append({
-            'x0': x0, 'y0': y0,
-            'x1': x1, 'y1': y1
-        })
-    
-    return {'nodes': nodes, 'edges': edges}
-
 # Create the Shiny app with a tab layout
 app_ui = ui.page_navbar(
     ui.nav_panel(

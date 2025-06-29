@@ -112,31 +112,18 @@ These optimizations support 50+ concurrent users while using less than 1GB of me
 git clone https://github.com/brian-hepler-phd/MathResearchCompass.git
 cd MathResearchCompass
 pip install -r requirements.txt
-python app_v2.py
+python app_v3.py
 ```
 
-### Database Setup (Optional)
+### Database Setup
 
 To recreate the database from raw data:
 
 ```bash
-python create_database.py
-python optimized_data_manager.py  # Test performance
+python src/create_database.py
+python src/optimized_data_manager.py  # Test performance
 ```
 
-### Reproducing the Analysis
-
-```bash
-# Topic modeling
-python topic_trends_analyzer.py --custom-csv data/cleaned/math_arxiv_snapshot.csv --years 5
-
-# AI enhancement
-export ANTHROPIC_API_KEY=your_api_key
-python topic_labeling.py
-
-# Category analysis
-python category_distribution.py
-```
 
 ## Deployment
 
